@@ -1,7 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+
+import 'package:excel/excel.dart' as ex;
+import 'package:path_provider/path_provider.dart';
+
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../services/api_service.dart';
 
@@ -40,6 +50,256 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
     _searchController.dispose();
 
     super.dispose();
+  }
+
+  Future<void> _exportExcel() async {
+    if (_filteredAttendances.isEmpty) {
+      _showMessage('Tidak ada data absensi untuk diexport.', true);
+      return;
+    }
+
+    try {
+      final excel = ex.Excel.createExcel();
+
+      // Hapus sheet default
+      final defaultSheet = excel.getDefaultSheet();
+
+      if (defaultSheet != null) {
+        excel.delete(defaultSheet);
+      }
+
+      final sheet = excel['Data Absensi'];
+
+      // HEADER
+      final headers = [
+        'No',
+        'Nama',
+        'Username',
+        'Tanggal',
+        'Clock In',
+        'Clock Out',
+        'Durasi Kerja',
+        'Status',
+        'Terlambat',
+        'Durasi Terlambat',
+        'Latitude In',
+        'Longitude In',
+        'Latitude Out',
+        'Longitude Out',
+        'Catatan',
+      ];
+
+      for (int i = 0; i < headers.length; i++) {
+        sheet
+            .cell(ex.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+            .value = ex.TextCellValue(
+          headers[i],
+        );
+      }
+
+      // DATA
+      for (int index = 0; index < _filteredAttendances.length; index++) {
+        final item = _filteredAttendances[index];
+
+        final user = item['user'] is Map
+            ? Map<String, dynamic>.from(item['user'])
+            : <String, dynamic>{};
+
+        final row = [
+          index + 1,
+          user['name'] ?? '-',
+          user['username'] ?? '-',
+          _displayDate(item['date']),
+          item['clock_in'] ?? '-',
+          item['clock_out'] ?? '-',
+          _formatDuration(item['work_duration']),
+          _formatStatus(item['status']),
+          item['is_late'] == true ? 'Ya' : 'Tidak',
+          '${item['late_duration'] ?? 0} menit',
+          item['latitude_in'] ?? '-',
+          item['longitude_in'] ?? '-',
+          item['latitude_out'] ?? '-',
+          item['longitude_out'] ?? '-',
+          item['notes'] ?? '-',
+        ];
+
+        for (int column = 0; column < row.length; column++) {
+          sheet
+              .cell(
+                ex.CellIndex.indexByColumnRow(
+                  columnIndex: column,
+                  rowIndex: index + 1,
+                ),
+              )
+              .value = ex.TextCellValue(
+            row[column].toString(),
+          );
+        }
+      }
+
+      final bytes = excel.encode();
+
+      if (bytes == null) {
+        throw Exception('Gagal membuat file Excel.');
+      }
+
+      final directory = await getTemporaryDirectory();
+
+      final start = _startDate != null ? _formatDate(_startDate!) : 'semua';
+
+      final end = _endDate != null ? _formatDate(_endDate!) : 'tanggal';
+
+      final fileName = 'data_absensi_${start}_sampai_$end.xlsx';
+
+      final file = File('${directory.path}/$fileName');
+
+      await file.writeAsBytes(bytes, flush: true);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Data Absensi',
+        text: 'Export data absensi',
+      );
+
+      if (!mounted) return;
+
+      _showMessage(
+        'Excel berhasil dibuat '
+        '(${_filteredAttendances.length} data).',
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      _showMessage(
+        'Gagal export Excel: '
+        '${e.toString().replaceFirst('Exception: ', '')}',
+        true,
+      );
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    if (_filteredAttendances.isEmpty) {
+      _showMessage('Tidak ada data absensi untuk diexport.', true);
+      return;
+    }
+
+    try {
+      final pdf = pw.Document();
+
+      final startDate = _startDate != null ? _formatDate(_startDate!) : '-';
+
+      final endDate = _endDate != null ? _formatDate(_endDate!) : '-';
+
+      final tableData = <List<String>>[];
+
+      for (int index = 0; index < _filteredAttendances.length; index++) {
+        final item = _filteredAttendances[index];
+
+        final user = item['user'] is Map
+            ? Map<String, dynamic>.from(item['user'])
+            : <String, dynamic>{};
+
+        tableData.add([
+          '${index + 1}',
+          '${user['name'] ?? '-'}',
+          '${user['username'] ?? '-'}',
+          _displayDate(item['date']),
+          '${item['clock_in'] ?? '-'}',
+          '${item['clock_out'] ?? '-'}',
+          _formatDuration(item['work_duration']),
+          _formatStatus(item['status']),
+          item['is_late'] == true ? '${item['late_duration'] ?? 0} mnt' : '-',
+        ]);
+      }
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4.landscape,
+          margin: const pw.EdgeInsets.all(24),
+          build: (context) {
+            return [
+              pw.Text(
+                'LAPORAN DATA ABSENSI',
+                style: pw.TextStyle(
+                  fontSize: 20,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+
+              pw.SizedBox(height: 6),
+
+              pw.Text(
+                'Periode: $startDate s/d $endDate',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+
+              pw.Text(
+                'Jumlah data: ${_filteredAttendances.length}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+
+              pw.SizedBox(height: 18),
+
+              pw.TableHelper.fromTextArray(
+                headers: const [
+                  'No',
+                  'Nama',
+                  'Username',
+                  'Tanggal',
+                  'Clock In',
+                  'Clock Out',
+                  'Durasi',
+                  'Status',
+                  'Terlambat',
+                ],
+                data: tableData,
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 8,
+                ),
+                cellStyle: const pw.TextStyle(fontSize: 7),
+                cellPadding: const pw.EdgeInsets.all(5),
+                border: pw.TableBorder.all(
+                  color: PdfColors.grey400,
+                  width: 0.5,
+                ),
+                headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.grey300,
+                ),
+              ),
+
+              pw.SizedBox(height: 20),
+
+              pw.Text(
+                'Dicetak pada: ${_formatDate(DateTime.now())}',
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: PdfColors.grey700,
+                ),
+              ),
+            ];
+          },
+        ),
+      );
+
+      final bytes = await pdf.save();
+
+      await Printing.sharePdf(bytes: bytes, filename: 'data_absensi.pdf');
+
+      if (!mounted) return;
+
+      _showMessage(
+        'PDF berhasil dibuat (${_filteredAttendances.length} data).',
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      _showMessage(
+        'Gagal export PDF: ${e.toString().replaceFirst('Exception: ', '')}',
+        true,
+      );
+    }
   }
 
   // ============================================================
@@ -1169,7 +1429,42 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
         ),
 
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Export',
+            icon: const Icon(Icons.download_outlined),
+            onSelected: (value) {
+              if (value == 'excel') {
+                _exportExcel();
+              } else if (value == 'pdf') {
+                _exportPdf();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart_outlined, color: Colors.green),
+                    SizedBox(width: 10),
+                    Text('Export Excel'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_outlined, color: Colors.red),
+                    SizedBox(width: 10),
+                    Text('Export PDF'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
           IconButton(
+            tooltip: 'Refresh',
             onPressed: _loadAttendances,
             icon: const Icon(Icons.refresh),
           ),
@@ -1295,6 +1590,43 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
                 icon: const Icon(
                   Icons.filter_alt_off_outlined,
                   color: Color(0xFF475569),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _filteredAttendances.isEmpty ? null : _exportExcel,
+                  icon: const Icon(Icons.table_chart_outlined),
+                  label: const Text('Excel'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF15803D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _filteredAttendances.isEmpty ? null : _exportPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
             ],
