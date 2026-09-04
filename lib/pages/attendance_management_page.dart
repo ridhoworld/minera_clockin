@@ -12,6 +12,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
 
 import '../services/api_service.dart';
 
@@ -187,11 +189,35 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
     try {
       final pdf = pw.Document();
 
-      final startDate = _startDate != null ? _formatDate(_startDate!) : '-';
+      // ============================================================
+      // CEK FILTER PERIODE
+      // ============================================================
 
-      final endDate = _endDate != null ? _formatDate(_endDate!) : '-';
+      final bool hasPeriodFilter = _startDate != null || _endDate != null;
 
-      final tableData = <List<String>>[];
+      final String startDate = _startDate != null
+          ? _formatDate(_startDate!)
+          : '';
+
+      final String endDate = _endDate != null ? _formatDate(_endDate!) : '';
+
+      String periodText = '';
+
+      if (hasPeriodFilter) {
+        if (_startDate != null && _endDate != null) {
+          periodText = 'Periode: $startDate s/d $endDate';
+        } else if (_startDate != null) {
+          periodText = 'Periode: mulai $startDate';
+        } else if (_endDate != null) {
+          periodText = 'Periode: sampai $endDate';
+        }
+      }
+
+      // ============================================================
+      // SIAPKAN DATA TABLE
+      // ============================================================
+
+      final List<List<pw.Widget>> tableData = [];
 
       for (int index = 0; index < _filteredAttendances.length; index++) {
         final item = _filteredAttendances[index];
@@ -200,25 +226,145 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
             ? Map<String, dynamic>.from(item['user'])
             : <String, dynamic>{};
 
+        // ==========================================================
+        // LOAD FOTO CLOCK IN
+        // ==========================================================
+
+        final pw.MemoryImage? photoIn = await _loadPdfImage(item['photo_in']);
+
+        // ==========================================================
+        // LOAD FOTO CLOCK OUT
+        // ==========================================================
+
+        final pw.MemoryImage? photoOut = await _loadPdfImage(item['photo_out']);
+
+        // ==========================================================
+        // FOTO CLOCK IN
+        // ==========================================================
+
+        final pw.Widget photoInWidget = photoIn != null
+            ? pw.Container(
+                width: 55,
+                height: 65,
+                alignment: pw.Alignment.center,
+                child: pw.Image(photoIn, fit: pw.BoxFit.cover),
+              )
+            : pw.Container(
+                width: 55,
+                height: 65,
+                alignment: pw.Alignment.center,
+                child: pw.Text('-', style: const pw.TextStyle(fontSize: 7)),
+              );
+
+        // ==========================================================
+        // FOTO CLOCK OUT
+        // ==========================================================
+
+        final pw.Widget photoOutWidget = photoOut != null
+            ? pw.Container(
+                width: 55,
+                height: 65,
+                alignment: pw.Alignment.center,
+                child: pw.Image(photoOut, fit: pw.BoxFit.cover),
+              )
+            : pw.Container(
+                width: 55,
+                height: 65,
+                alignment: pw.Alignment.center,
+                child: pw.Text('-', style: const pw.TextStyle(fontSize: 7)),
+              );
+
+        // ==========================================================
+        // DATA TABLE
+        // ==========================================================
+
         tableData.add([
-          '${index + 1}',
-          '${user['name'] ?? '-'}',
-          '${user['username'] ?? '-'}',
-          _displayDate(item['date']),
-          '${item['clock_in'] ?? '-'}',
-          '${item['clock_out'] ?? '-'}',
-          _formatDuration(item['work_duration']),
-          _formatStatus(item['status']),
-          item['is_late'] == true ? '${item['late_duration'] ?? 0} mnt' : '-',
+          // NO
+          pw.Center(
+            child: pw.Text(
+              '${index + 1}',
+              style: const pw.TextStyle(fontSize: 7),
+            ),
+          ),
+
+          // NAMA
+          pw.Text(
+            '${user['name'] ?? '-'}',
+            style: const pw.TextStyle(fontSize: 7),
+          ),
+
+          // TANGGAL
+          pw.Text(
+            _displayDate(item['date']),
+            style: const pw.TextStyle(fontSize: 7),
+          ),
+
+          // CLOCK IN
+          pw.Text(
+            '${item['clock_in'] ?? '-'}',
+            style: const pw.TextStyle(fontSize: 7),
+          ),
+
+          // FOTO IN
+          photoInWidget,
+
+          // LATITUDE IN
+          // LOKASI IN
+          pw.Text(
+            '${item['latitude_in'] ?? '-'}, ${item['longitude_in'] ?? '-'}',
+            style: const pw.TextStyle(fontSize: 6),
+          ),
+
+          // CLOCK OUT
+          pw.Text(
+            '${item['clock_out'] ?? '-'}',
+            style: const pw.TextStyle(fontSize: 7),
+          ),
+
+          // FOTO OUT
+          photoOutWidget,
+
+          // LATITUDE OUT
+          // LOKASI OUT
+          pw.Text(
+            '${item['latitude_out'] ?? '-'}, ${item['longitude_out'] ?? '-'}',
+            style: const pw.TextStyle(fontSize: 6),
+          ),
+
+          // DURASI
+          pw.Text(
+            _formatDuration(item['work_duration']),
+            style: const pw.TextStyle(fontSize: 7),
+          ),
+
+          // STATUS
+          pw.Text(
+            _formatStatus(item['status']),
+            style: const pw.TextStyle(fontSize: 7),
+          ),
+
+          // TERLAMBAT
+          pw.Text(
+            item['is_late'] == true ? '${item['late_duration'] ?? 0} mnt' : '-',
+            style: const pw.TextStyle(fontSize: 7),
+          ),
         ]);
       }
 
+      // ============================================================
+      // PDF
+      // ============================================================
+
       pdf.addPage(
         pw.MultiPage(
-          pageFormat: PdfPageFormat.a4.landscape,
+          pageFormat: PdfPageFormat.a3.landscape,
           margin: const pw.EdgeInsets.all(24),
+
           build: (context) {
             return [
+              // ======================================================
+              // JUDUL
+              // ======================================================
               pw.Text(
                 'LAPORAN DATA ABSENSI',
                 style: pw.TextStyle(
@@ -229,11 +375,18 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
 
               pw.SizedBox(height: 6),
 
-              pw.Text(
-                'Periode: $startDate s/d $endDate',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
+              // ======================================================
+              // PERIODE
+              // HANYA MUNCUL JIKA ADA FILTER
+              // ======================================================
+              if (hasPeriodFilter) ...[
+                pw.Text(periodText, style: const pw.TextStyle(fontSize: 10)),
+                pw.SizedBox(height: 2),
+              ],
 
+              // ======================================================
+              // JUMLAH DATA
+              // ======================================================
               pw.Text(
                 'Jumlah data: ${_filteredAttendances.length}',
                 style: const pw.TextStyle(fontSize: 10),
@@ -241,36 +394,90 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
 
               pw.SizedBox(height: 18),
 
-              pw.TableHelper.fromTextArray(
-                headers: const [
-                  'No',
-                  'Nama',
-                  'Username',
-                  'Tanggal',
-                  'Clock In',
-                  'Clock Out',
-                  'Durasi',
-                  'Status',
-                  'Terlambat',
-                ],
-                data: tableData,
-                headerStyle: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 8,
-                ),
-                cellStyle: const pw.TextStyle(fontSize: 7),
-                cellPadding: const pw.EdgeInsets.all(5),
+              // ======================================================
+              // TABLE
+              // ======================================================
+              pw.Table(
                 border: pw.TableBorder.all(
                   color: PdfColors.grey400,
                   width: 0.5,
                 ),
-                headerDecoration: const pw.BoxDecoration(
-                  color: PdfColors.grey300,
-                ),
+
+                columnWidths: const {
+                  0: pw.FixedColumnWidth(25), // No
+                  1: pw.FixedColumnWidth(85), // Nama
+                  2: pw.FixedColumnWidth(60), // Tanggal
+                  3: pw.FixedColumnWidth(50), // Clock In
+                  4: pw.FixedColumnWidth(80), // Foto In
+                  5: pw.FixedColumnWidth(90), // Lokasi In
+                  6: pw.FixedColumnWidth(50), // Clock Out
+                  7: pw.FixedColumnWidth(80), // Foto Out
+                  8: pw.FixedColumnWidth(90), // Lokasi Out
+                  9: pw.FixedColumnWidth(50), // Durasi
+                  10: pw.FixedColumnWidth(55), // Status
+                  11: pw.FixedColumnWidth(50), //
+                },
+
+                children: [
+                  // ==================================================
+                  // HEADER
+                  // ==================================================
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.grey300,
+                    ),
+                    children:
+                        [
+                          'No',
+                          'Nama',
+                          'Tanggal',
+                          'Clock In',
+                          'Foto In',
+                          'Lokasi In',
+                          'Clock Out',
+                          'Foto Out',
+                          'Lokasi Out',
+                          'Durasi',
+                          'Status',
+                          'Terlambat',
+                        ].map((header) {
+                          return pw.Container(
+                            padding: const pw.EdgeInsets.all(4),
+                            alignment: pw.Alignment.center,
+                            child: pw.Text(
+                              header,
+                              textAlign: pw.TextAlign.center,
+                              style: pw.TextStyle(
+                                fontSize: 7,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                  ),
+
+                  // ==================================================
+                  // DATA
+                  // ==================================================
+                  ...tableData.map((row) {
+                    return pw.TableRow(
+                      children: row.map((cell) {
+                        return pw.Container(
+                          padding: const pw.EdgeInsets.all(4),
+                          alignment: pw.Alignment.center,
+                          child: cell,
+                        );
+                      }).toList(),
+                    );
+                  }),
+                ],
               ),
 
               pw.SizedBox(height: 20),
 
+              // ======================================================
+              // TANGGAL CETAK
+              // ======================================================
               pw.Text(
                 'Dicetak pada: ${_formatDate(DateTime.now())}',
                 style: const pw.TextStyle(
@@ -283,6 +490,10 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
         ),
       );
 
+      // ============================================================
+      // SAVE PDF
+      // ============================================================
+
       final bytes = await pdf.save();
 
       await Printing.sharePdf(bytes: bytes, filename: 'data_absensi.pdf');
@@ -290,18 +501,109 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
       if (!mounted) return;
 
       _showMessage(
-        'PDF berhasil dibuat (${_filteredAttendances.length} data).',
+        'PDF berhasil dibuat '
+        '(${_filteredAttendances.length} data).',
       );
     } catch (e) {
       if (!mounted) return;
 
       _showMessage(
-        'Gagal export PDF: ${e.toString().replaceFirst('Exception: ', '')}',
+        'Gagal export PDF: '
+        '${e.toString().replaceFirst('Exception: ', '')}',
         true,
       );
     }
   }
 
+  String? _photoUrl(dynamic photo) {
+    if (photo == null) {
+      debugPrint('PHOTO: null');
+      return null;
+    }
+
+    final path = photo.toString().trim();
+
+    if (path.isEmpty) {
+      debugPrint('PHOTO: kosong');
+      return null;
+    }
+
+    debugPrint('PHOTO PATH DARI API: $path');
+
+    // API sudah memberikan URL lengkap
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      debugPrint('PHOTO URL FINAL: $path');
+      return path;
+    }
+
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
+    if (baseUrl.isEmpty) {
+      debugPrint('ERROR: API_BASE_URL kosong');
+      return null;
+    }
+
+    // Hilangkan trailing /
+    final cleanBaseUrl = baseUrl.replaceFirst(RegExp(r'\/+$'), '');
+
+    // Path dari API misalnya:
+    // attendances/abc.jpg
+
+    final cleanPath = path.replaceFirst(RegExp(r'^\/+'), '');
+
+    final url = '$cleanBaseUrl/storage/$cleanPath';
+
+    debugPrint('PHOTO URL FINAL: $url');
+
+    return url;
+  }
+
+  Future<pw.MemoryImage?> _loadPdfImage(dynamic photo) async {
+    // Gunakan fungsi _photoUrl() yang sama dengan tampilan detail
+    final photoUrl = _photoUrl(photo);
+
+    if (photoUrl == null || photoUrl.isEmpty) {
+      debugPrint('PDF PHOTO: URL tidak tersedia');
+      return null;
+    }
+
+    try {
+      debugPrint('PDF PHOTO URL: $photoUrl');
+
+      final dio = Dio();
+
+      final response = await dio.get<List<int>>(
+        photoUrl,
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+          validateStatus: (status) {
+            return status != null && status >= 200 && status < 400;
+          },
+        ),
+      );
+
+      if (response.data == null || response.data!.isEmpty) {
+        debugPrint('PDF PHOTO: data kosong');
+        return null;
+      }
+
+      debugPrint('PDF PHOTO BERHASIL: ${response.data!.length} bytes');
+
+      return pw.MemoryImage(Uint8List.fromList(response.data!));
+    } catch (e, stackTrace) {
+      debugPrint('=================================');
+      debugPrint('GAGAL LOAD FOTO UNTUK PDF');
+      debugPrint('URL: $photoUrl');
+      debugPrint('ERROR: $e');
+      debugPrint('STACK: $stackTrace');
+      debugPrint('=================================');
+
+      return null;
+    }
+  }
   // ============================================================
   // LOAD DATA
   // ============================================================
@@ -1374,44 +1676,6 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
   // ============================================================
   // UI
   // ============================================================
-
-  String? _photoUrl(dynamic photo) {
-    if (photo == null) {
-      debugPrint('PHOTO: null');
-      return null;
-    }
-
-    final path = photo.toString().trim();
-
-    if (path.isEmpty) {
-      debugPrint('PHOTO: kosong');
-      return null;
-    }
-
-    debugPrint('PHOTO PATH DARI API: $path');
-
-    // Kalau API sudah mengirim URL lengkap
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      debugPrint('PHOTO URL FINAL: $path');
-      return path;
-    }
-
-    // Khusus file/storage, JANGAN menggunakan API_URL
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
-
-    debugPrint('API_BASE_URL: $baseUrl');
-
-    if (baseUrl.isEmpty) {
-      debugPrint('ERROR: API_BASE_URL kosong');
-      return null;
-    }
-
-    final url = '$baseUrl/storage/$path';
-
-    debugPrint('PHOTO URL FINAL: $url');
-
-    return url;
-  }
 
   @override
   Widget build(BuildContext context) {

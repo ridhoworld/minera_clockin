@@ -68,105 +68,124 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _showUserForm({Map<String, dynamic>? user}) async {
-    final isEdit = user != null;
-    bool isSubmitting = false;
+    final bool isEdit = user != null;
 
-    final nameController = TextEditingController(text: user?['name'] ?? '');
-    final usernameController = TextEditingController(
-      text: user?['username'] ?? '',
+    final nameController = TextEditingController(
+      text: user?['name']?.toString() ?? '',
     );
-    final passwordController = TextEditingController();
 
-    String selectedRole =
-        user?['role'] == 'admin' || user?['role'] == 'barge_crew'
-        ? user!['role'].toString()
-        : 'barge_crew';
+    final usernameController = TextEditingController(
+      text: user?['username']?.toString() ?? '',
+    );
+
+    final passwordController = TextEditingController();
 
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Text(
-                isEdit ? 'Edit User' : 'Tambah User',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
+    String selectedRole =
+        user?['role']?.toString() == 'admin' ||
+            user?['role']?.toString() == 'barge_crew'
+        ? user!['role'].toString()
+        : 'barge_crew';
+
+    bool isSubmitting = false;
+
+    final pageContext = context;
+
+    bool? result;
+
+    try {
+      result = await showDialog<bool>(
+        context: pageContext,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (dialogContext, setDialogState) {
+              return AlertDialog(
+                title: Text(
+                  isEdit ? 'Edit User' : 'Tambah User',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-              ),
-              content: SizedBox(
-                width: 420,
-                child: Form(
+
+                content: Form(
                   key: formKey,
                   child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // =========================
+                        // NAMA
+                        // =========================
                         TextFormField(
                           controller: nameController,
-                          textInputAction: TextInputAction.next,
-                          decoration: _inputDecoration(
-                            'Nama Lengkap',
-                            Icons.person_outline,
+                          decoration: const InputDecoration(
+                            labelText: 'Nama Lengkap',
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Nama wajib diisi.';
                             }
+
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
+
+                        const SizedBox(height: 12),
+
+                        // =========================
+                        // USERNAME
+                        // =========================
                         TextFormField(
                           controller: usernameController,
-                          textInputAction: TextInputAction.next,
-                          decoration: _inputDecoration(
-                            'Username',
-                            Icons.account_circle_outlined,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Username wajib diisi.';
                             }
+
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
+
+                        const SizedBox(height: 12),
+
+                        // =========================
+                        // PASSWORD
+                        // =========================
                         TextFormField(
                           controller: passwordController,
                           obscureText: true,
-                          textInputAction: TextInputAction.next,
-                          decoration: _inputDecoration(
-                            isEdit ? 'Password Baru (opsional)' : 'Password',
-                            Icons.lock_outline,
+                          decoration: InputDecoration(
+                            labelText: isEdit
+                                ? 'Password Baru (opsional)'
+                                : 'Password',
                           ),
                           validator: (value) {
-                            if (!isEdit && (value == null || value.isEmpty)) {
+                            if (!isEdit &&
+                                (value == null || value.trim().isEmpty)) {
                               return 'Password wajib diisi.';
                             }
+
                             if (value != null &&
                                 value.isNotEmpty &&
                                 value.length < 6) {
                               return 'Minimal 6 karakter.';
                             }
+
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
+
+                        const SizedBox(height: 12),
+
+                        // =========================
+                        // ROLE
+                        // =========================
                         DropdownButtonFormField<String>(
                           value: selectedRole,
-                          decoration: _inputDecoration(
-                            'Role',
-                            Icons.admin_panel_settings_outlined,
-                          ),
+                          decoration: const InputDecoration(labelText: 'Role'),
                           items: const [
                             DropdownMenuItem(
                               value: 'admin',
@@ -177,117 +196,181 @@ class _UserManagementPageState extends State<UserManagementPage> {
                               child: Text('Barge Crew'),
                             ),
                           ],
-                          onChanged: (value) {
-                            if (value == null) return;
-                            setDialogState(() {
-                              selectedRole = value;
-                            });
-                          },
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+
+                                  setDialogState(() {
+                                    selectedRole = value;
+                                  });
+                                },
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () {
-                          Navigator.pop(dialogContext);
-                        },
-                  child: const Text(
-                    'Batal',
-                    style: TextStyle(color: Color(0xFF64748B)),
+
+                // =========================
+                // BUTTON
+                // =========================
+                actions: [
+                  TextButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () {
+                            Navigator.of(dialogContext).pop(false);
+                          },
+                    child: const Text(
+                      'Batal',
+                      style: TextStyle(color: Color(0xFF64748B)),
+                    ),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          if (!formKey.currentState!.validate()) return;
 
-                          setDialogState(() {
-                            isSubmitting = true;
-                          });
-
-                          try {
-                            if (isEdit) {
-                              await _apiService.updateUser(
-                                id: user['id'] as int,
-                                name: nameController.text.trim(),
-                                username: usernameController.text.trim(),
-                                password: passwordController.text.trim(),
-                                role: selectedRole,
-                              );
-                            } else {
-                              await _apiService.createUser(
-                                name: nameController.text.trim(),
-                                username: usernameController.text.trim(),
-                                password: passwordController.text,
-                                role: selectedRole,
-                              );
+                  ElevatedButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            // =========================
+                            // VALIDASI
+                            // =========================
+                            if (!formKey.currentState!.validate()) {
+                              return;
                             }
 
-                            if (dialogContext.mounted) {
-                              Navigator.of(dialogContext).pop();
-                            }
-
-                            if (!mounted) return;
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  isEdit
-                                      ? 'User berhasil diperbarui.'
-                                      : 'User berhasil ditambahkan.',
-                                ),
-                                backgroundColor: const Color(0xFF0F766E),
-                              ),
-                            );
-
-                            await _loadUsers();
-                          } catch (e, stackTrace) {
-                            debugPrint('ERROR SIMPAN USER: $e');
-
-                            if (!dialogContext.mounted) return;
-
+                            // =========================
+                            // DISABLE BUTTON
+                            // =========================
                             setDialogState(() {
-                              isSubmitting = false;
+                              isSubmitting = true;
                             });
 
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  e.toString().replaceFirst('Exception: ', ''),
+                            try {
+                              // =========================
+                              // UPDATE
+                              // =========================
+                              if (isEdit) {
+                                await _apiService.updateUser(
+                                  id: int.parse(user!['id'].toString()),
+                                  name: nameController.text.trim(),
+                                  username: usernameController.text.trim(),
+                                  password: passwordController.text.trim(),
+                                  role: selectedRole,
+                                );
+                              }
+                              // =========================
+                              // CREATE
+                              // =========================
+                              else {
+                                await _apiService.createUser(
+                                  name: nameController.text.trim(),
+                                  username: usernameController.text.trim(),
+                                  password: passwordController.text.trim(),
+                                  role: selectedRole,
+                                );
+                              }
+
+                              // =================================================
+                              // PENTING:
+                              // Setelah API sukses, hanya tutup dialog.
+                              // Jangan akses controller lagi setelah Navigator.pop.
+                              // =================================================
+                              if (dialogContext.mounted) {
+                                Navigator.of(dialogContext).pop(true);
+                              }
+                            } catch (e) {
+                              debugPrint('ERROR SIMPAN USER: $e');
+
+                              if (!dialogContext.mounted) {
+                                return;
+                              }
+
+                              setDialogState(() {
+                                isSubmitting = false;
+                              });
+
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.red,
                                 ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F766E),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0F766E),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    child: isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(isEdit ? 'Simpan' : 'Tambah'),
                   ),
-                  child: Text(isEdit ? 'Simpan' : 'Tambah'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      // =====================================================
+      // showDialog completes when pop() is called, before the dialog route's
+      // reverse animation has finished. Delay disposal until that animation
+      // is complete so the remaining dialog frames can still use the fields.
+      // =====================================================
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      nameController.dispose();
+      usernameController.dispose();
+      passwordController.dispose();
+    }
+
+    // =====================================================
+    // DIALOG DIBATALKAN
+    // =====================================================
+    if (result != true) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    // =====================================================
+    // NOTIFIKASI SUKSES
+    // =====================================================
+    ScaffoldMessenger.of(pageContext).showSnackBar(
+      SnackBar(
+        content: Text(
+          isEdit ? 'User berhasil diperbarui.' : 'User berhasil ditambahkan.',
+        ),
+        backgroundColor: const Color(0xFF0F766E),
+      ),
     );
-    nameController.dispose();
-    usernameController.dispose();
-    passwordController.dispose();
+
+    // =====================================================
+    // REFRESH DATA
+    // =====================================================
+    await _loadUsers();
   }
 
   Future<void> _deleteUser(Map<String, dynamic> user) async {
