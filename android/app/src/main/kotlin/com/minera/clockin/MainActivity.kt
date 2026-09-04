@@ -1,4 +1,4 @@
-package com.example.minera_clockin
+package com.minera.clockin
 
 import io.flutter.embedding.android.FlutterActivity
 
