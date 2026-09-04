@@ -577,6 +577,10 @@ class ApiService {
   // GET ATTENDANCES
   // ============================================================
 
+  // ============================================================
+  // GET ATTENDANCES
+  // ============================================================
+
   Future<List<Map<String, dynamic>>> getAttendances() async {
     if (token == null) {
       throw Exception('Belum login.');
@@ -585,7 +589,12 @@ class ApiService {
     try {
       final response = await _dio.get(
         '/attendances',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
       );
 
       final responseData = response.data;
@@ -619,7 +628,6 @@ class ApiService {
       if (e.response?.statusCode == 401) {
         token = null;
         user = null;
-
         throw Exception('Sesi login sudah berakhir.');
       }
 
@@ -661,7 +669,12 @@ class ApiService {
       final response = await _dio.post(
         '/attendance/clock-in',
         data: formData,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
       );
 
       final responseData = response.data;
@@ -684,7 +697,18 @@ class ApiService {
 
       return {};
     } on DioException catch (e) {
+      debugPrint('CLOCK IN ERROR: ${e.response?.data}');
+
       if (e.response?.statusCode == 422) {
+        throw Exception(
+          _getErrorMessage(
+            e,
+            defaultMessage: 'Anda tidak dapat melakukan clock in.',
+          ),
+        );
+      }
+
+      if (e.response?.statusCode == 400) {
         throw Exception(
           _getErrorMessage(
             e,
@@ -696,7 +720,6 @@ class ApiService {
       if (e.response?.statusCode == 401) {
         token = null;
         user = null;
-
         throw Exception('Sesi login sudah berakhir.');
       }
 
@@ -734,7 +757,12 @@ class ApiService {
       final response = await _dio.post(
         '/attendance/clock-out',
         data: formData,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
       );
 
       final responseData = response.data;
@@ -757,7 +785,18 @@ class ApiService {
 
       return {};
     } on DioException catch (e) {
+      debugPrint('CLOCK OUT ERROR: ${e.response?.data}');
+
       if (e.response?.statusCode == 422) {
+        throw Exception(
+          _getErrorMessage(
+            e,
+            defaultMessage: 'Anda tidak dapat melakukan clock out.',
+          ),
+        );
+      }
+
+      if (e.response?.statusCode == 400) {
         throw Exception(
           _getErrorMessage(
             e,
@@ -769,12 +808,75 @@ class ApiService {
       if (e.response?.statusCode == 401) {
         token = null;
         user = null;
-
         throw Exception('Sesi login sudah berakhir.');
       }
 
       throw Exception(
         _getErrorMessage(e, defaultMessage: 'Gagal melakukan clock out.'),
+      );
+    }
+  }
+
+  // ============================================================
+  // TODAY ATTENDANCE
+  // ============================================================
+
+  Future<Map<String, dynamic>?> getTodayAttendance() async {
+    if (token == null) {
+      throw Exception('Belum login.');
+    }
+
+    try {
+      final response = await _dio.get(
+        '/attendance/today',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      final responseData = response.data;
+
+      if (responseData is! Map) {
+        throw Exception('Response attendance hari ini tidak valid.');
+      }
+
+      if (responseData['success'] != true) {
+        throw Exception(
+          responseData['message']?.toString() ??
+              'Gagal mengambil data absensi hari ini.',
+        );
+      }
+
+      final data = responseData['data'];
+
+      if (data == null) {
+        return null;
+      }
+
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        token = null;
+        user = null;
+        throw Exception('Sesi login sudah berakhir.');
+      }
+
+      if (e.response?.statusCode == 403) {
+        throw Exception('Anda tidak memiliki akses.');
+      }
+
+      throw Exception(
+        _getErrorMessage(
+          e,
+          defaultMessage: 'Gagal mengambil data absensi hari ini.',
+        ),
       );
     }
   }
@@ -894,56 +996,4 @@ class ApiService {
   // ============================================================
   // TODAY ATTENDANCE
   // ============================================================
-
-  Future<Map<String, dynamic>?> getTodayAttendance() async {
-    if (token == null) {
-      throw Exception('Belum login.');
-    }
-
-    try {
-      final response = await _dio.get(
-        '/attendance/today',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
-      );
-
-      final responseData = response.data;
-
-      if (responseData is! Map) {
-        throw Exception('Response attendance hari ini tidak valid.');
-      }
-
-      if (responseData['success'] != true) {
-        throw Exception(
-          responseData['message']?.toString() ??
-              'Gagal mengambil data absensi hari ini.',
-        );
-      }
-
-      final data = responseData['data'];
-
-      if (data == null) {
-        return null;
-      }
-
-      if (data is Map) {
-        return Map<String, dynamic>.from(data);
-      }
-
-      return null;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        token = null;
-        user = null;
-
-        throw Exception('Sesi login sudah berakhir.');
-      }
-
-      throw Exception(
-        _getErrorMessage(
-          e,
-          defaultMessage: 'Gagal mengambil data absensi hari ini.',
-        ),
-      );
-    }
-  }
 }

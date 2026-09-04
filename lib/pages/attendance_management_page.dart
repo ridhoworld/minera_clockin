@@ -1559,7 +1559,7 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
                 child: _dateButton(
                   icon: Icons.calendar_today_outlined,
                   label: _startDate == null
-                      ? 'Tanggal mulai'
+                      ? 'Tanggal awal'
                       : _formatDate(_startDate!),
                   onTap: _selectStartDate,
                 ),
@@ -1571,7 +1571,7 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
                 child: _dateButton(
                   icon: Icons.event_outlined,
                   label: _endDate == null
-                      ? 'Tanggal selesai'
+                      ? 'Tanggal akhir'
                       : _formatDate(_endDate!),
                   onTap: _selectEndDate,
                 ),

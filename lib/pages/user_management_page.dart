@@ -17,7 +17,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
   List<Map<String, dynamic>> _users = [];
 
   bool _isLoading = true;
-  bool _isSubmitting = false;
 
   String _selectedRole = 'all';
 
@@ -70,6 +69,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Future<void> _showUserForm({Map<String, dynamic>? user}) async {
     final isEdit = user != null;
+    bool isSubmitting = false;
 
     final nameController = TextEditingController(text: user?['name'] ?? '');
     final usernameController = TextEditingController(
@@ -191,7 +191,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ),
               actions: [
                 TextButton(
-                  onPressed: _isSubmitting
+                  onPressed: isSubmitting
                       ? null
                       : () {
                           Navigator.pop(dialogContext);
@@ -202,13 +202,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: _isSubmitting
+                  onPressed: isSubmitting
                       ? null
                       : () async {
                           if (!formKey.currentState!.validate()) return;
 
                           setDialogState(() {
-                            _isSubmitting = true;
+                            isSubmitting = true;
                           });
 
                           try {
@@ -253,7 +253,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             if (!dialogContext.mounted) return;
 
                             setDialogState(() {
-                              _isSubmitting = false;
+                              isSubmitting = false;
                             });
 
                             ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -285,13 +285,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
         );
       },
     );
-
-    // Safely dispose after widget frame tearing completes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      nameController.dispose();
-      usernameController.dispose();
-      passwordController.dispose();
-    });
+    nameController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
   }
 
   Future<void> _deleteUser(Map<String, dynamic> user) async {
