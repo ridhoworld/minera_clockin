@@ -37,6 +37,8 @@ flutter:
 
   assets:
     - .env
+    - assets/minera.png
+    - assets/images/bg.jpg
 
 flutter_launcher_icons:
   android: true

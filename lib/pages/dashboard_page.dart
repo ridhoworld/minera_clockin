@@ -32,7 +32,8 @@ class _DashboardPageState extends State<DashboardPage> {
     final raw = value.toString();
 
     try {
-      final date = DateTime.parse(raw);
+      // Tambahkan .toLocal() agar tanggal menyesuaikan dengan zona waktu HP pengguna
+      final date = DateTime.parse(raw).toLocal();
 
       const days = [
         'Senin',
