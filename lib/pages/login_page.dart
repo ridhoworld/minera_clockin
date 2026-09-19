@@ -181,17 +181,6 @@ class _LoginPageState extends State<LoginPage> {
 
           const SizedBox(height: 27),
 
-          const Text(
-            'Username',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: textDark,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
           TextFormField(
             controller: _usernameController,
             textInputAction: TextInputAction.next,
@@ -210,17 +199,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
 
           const SizedBox(height: 19),
-
-          const Text(
-            'Password',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: textDark,
-            ),
-          ),
-
-          const SizedBox(height: 8),
 
           TextFormField(
             controller: _passwordController,

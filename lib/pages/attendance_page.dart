@@ -377,11 +377,14 @@ class _AttendancePageState extends State<AttendancePage> {
     // DATA ABSENSI
     // ==========================================================
 
+    // final clockIn = _today!['clock_in'];
+    // final clockOut = _today!['clock_out'];
+
+    // final isLate = _today!['is_late'] == true;
+
+    // final duration = int.tryParse('${_today!['work_duration'] ?? 0}') ?? 0;
     final clockIn = _today!['clock_in'];
     final clockOut = _today!['clock_out'];
-
-    final isLate = _today!['is_late'] == true;
-
     final duration = int.tryParse('${_today!['work_duration'] ?? 0}') ?? 0;
 
     // ==========================================================
@@ -400,23 +403,44 @@ class _AttendancePageState extends State<AttendancePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
 
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Absensi Hari Ini',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+          // Row(
+          //   children: [
+          //     const Expanded(
+          //       child: Text(
+          //         'Absensi Hari Ini',
+          //         style: TextStyle(
+          //           color: Colors.white,
+          //           fontSize: 18,
+          //           fontWeight: FontWeight.w700,
+          //         ),
+          //       ),
+          //     ),
 
-              _buildStatusBadge(isLate),
-            ],
+          //     _buildStatusBadge(isLate),
+          //   ],
+          // ),
+          // Row(
+          //   children: [
+          //     const Expanded(
+          //       child: Text(
+          //         'Absensi Hari Ini',
+          //         style: TextStyle(
+          //           color: Colors.white,
+          //           fontSize: 18,
+          //           fontWeight: FontWeight.w700,
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          const Text(
+            'Absensi Hari Ini',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-
           const SizedBox(height: 24),
 
           Row(
@@ -504,28 +528,28 @@ class _AttendancePageState extends State<AttendancePage> {
   // STATUS BADGE
   // ============================================================
 
-  Widget _buildStatusBadge(bool isLate) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+  // Widget _buildStatusBadge(bool isLate) {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
 
-      decoration: BoxDecoration(
-        color: isLate ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
+  //     decoration: BoxDecoration(
+  //       color: isLate ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
 
-        borderRadius: BorderRadius.circular(20),
-      ),
+  //       borderRadius: BorderRadius.circular(20),
+  //     ),
 
-      child: Text(
-        isLate ? 'Terlambat' : 'Tepat Waktu',
+  //     child: Text(
+  //       isLate ? 'Terlambat' : 'Tepat Waktu',
 
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+  //       style: TextStyle(
+  //         fontSize: 11,
+  //         fontWeight: FontWeight.w700,
 
-          color: isLate ? const Color(0xFFB45309) : const Color(0xFF15803D),
-        ),
-      ),
-    );
-  }
+  //         color: isLate ? const Color(0xFFB45309) : const Color(0xFF15803D),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   // ============================================================
   // TIME INFO

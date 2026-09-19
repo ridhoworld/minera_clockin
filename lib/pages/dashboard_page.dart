@@ -414,7 +414,7 @@ class _DashboardPageState extends State<DashboardPage> {
               final userName = item['user']?['name'] ?? 'Crew';
               final clockIn = item['clock_in'] ?? '-';
               final clockOut = item['clock_out'] ?? 'Belum Clock Out';
-              final isLate = item['is_late'] ?? false;
+              // final isLate = trailing: Container(item['is_late'] ?? false;
 
               return Card(
                 elevation: 0,
@@ -438,27 +438,31 @@ class _DashboardPageState extends State<DashboardPage> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text('In: $clockIn | Out: $clockOut'),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isLate
-                          ? const Color(0xFFFEF3C7)
-                          : const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      isLate ? 'Late' : 'On Time',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: isLate
-                            ? const Color(0xFFB45309)
-                            : const Color(0xFF15803D),
-                      ),
-                    ),
+                  // trailing: Container(
+                  //   padding: const EdgeInsets.symmetric(
+                  //     horizontal: 10,
+                  //     vertical: 4,
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     color: isLate
+                  //         ? const Color(0xFFFEF3C7)
+                  //         : const Color(0xFFDCFCE7),
+                  //     borderRadius: BorderRadius.circular(20),
+                  //   ),
+                  //   child: Text(
+                  //     isLate ? 'Late' : 'On Time',
+                  //     style: TextStyle(
+                  //       fontSize: 12,
+                  //       fontWeight: FontWeight.bold,
+                  //       color: isLate
+                  //           ? const Color(0xFFB45309)
+                  //           : const Color(0xFF15803D),
+                  //     ),
+                  //   ),
+                  // ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: Color(0xFF94A3B8),
                   ),
                 ),
               );
@@ -540,11 +544,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final status = '${item['status'] ?? 'absent'}'.toLowerCase();
 
-    final isLate = item['is_late'] == true;
+    // final isLate = item['is_late'] == true;
 
     final workDuration = item['work_duration'];
 
-    final lateDuration = item['late_duration'];
+    // final lateDuration = item['late_duration'];
 
     Color statusColor;
     Color statusBackground;
@@ -731,50 +735,50 @@ class _DashboardPageState extends State<DashboardPage> {
           // =========================
           // TERLAMBAT
           // =========================
-          if (isLate) ...[
-            const SizedBox(height: 10),
+          // if (isLate) ...[
+          //   const SizedBox(height: 10),
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFDE68A)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.warning_amber_rounded,
-                    size: 19,
-                    color: Color(0xFFD97706),
-                  ),
+          //   Container(
+          //     width: double.infinity,
+          //     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          //     decoration: BoxDecoration(
+          //       color: const Color(0xFFFFFBEB),
+          //       borderRadius: BorderRadius.circular(12),
+          //       border: Border.all(color: const Color(0xFFFDE68A)),
+          //     ),
+          //     child: Row(
+          //       children: [
+          //         const Icon(
+          //           Icons.warning_amber_rounded,
+          //           size: 19,
+          //           color: Color(0xFFD97706),
+          //         ),
 
-                  const SizedBox(width: 9),
+          //         const SizedBox(width: 9),
 
-                  const Expanded(
-                    child: Text(
-                      'Terlambat',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF92400E),
-                      ),
-                    ),
-                  ),
+          //         const Expanded(
+          //           child: Text(
+          //             'Terlambat',
+          //             style: TextStyle(
+          //               fontSize: 13,
+          //               fontWeight: FontWeight.w600,
+          //               color: Color(0xFF92400E),
+          //             ),
+          //           ),
+          //         ),
 
-                  Text(
-                    '${lateDuration ?? 0} menit',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFB45309),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          //         Text(
+          //           '${lateDuration ?? 0} menit',
+          //           style: const TextStyle(
+          //             fontSize: 12,
+          //             fontWeight: FontWeight.w700,
+          //             color: Color(0xFFB45309),
+          //           ),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // ],
 
           // =========================
           // BELUM CLOCK OUT
@@ -990,32 +994,19 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 20),
 
           // Monthly Statistics Summary
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Hadir Bulan Ini',
-                  '${stats['present_this_month'] ?? 0} Hari',
-                  Icons.calendar_today,
-                  const Color(0xFF0F766E),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'Terlambat',
-                  '${stats['late_this_month'] ?? 0} Kali',
-                  Icons.timer,
-                  const Color(0xFFD97706),
-                ),
-              ),
-            ],
+          // Monthly Statistics Summary
+          _buildStatCard(
+            'Hadir Bulan Ini',
+            '${stats['present_this_month'] ?? 0} Hari',
+            Icons.calendar_today,
+            const Color(0xFF0F766E),
           ),
 
           const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.badge_outlined),
             title: const Text('Absensi Saya'),
+            trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
                 context,
@@ -1023,6 +1014,7 @@ class _DashboardPageState extends State<DashboardPage> {
               );
             },
           ),
+
           const SizedBox(height: 24),
           const Text(
             'Riwayat 7 Hari Terakhir',
