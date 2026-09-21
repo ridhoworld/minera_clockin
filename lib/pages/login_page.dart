@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
 
   static const Color navy = Color(0xFF0F3D52);
-  static const Color darkNavy = Color(0xFF092C3C);
+  // static const Color darkNavy = Color(0xFF092C3C);
   static const Color yellow = Color(0xFFFFB91F);
   static const Color background = Color(0xFFF7F9FA);
   static const Color textDark = Color(0xFF172B35);

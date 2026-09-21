@@ -253,7 +253,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                               // =========================
                               if (isEdit) {
                                 await _apiService.updateUser(
-                                  id: int.parse(user!['id'].toString()),
+                                  id: int.parse(user['id'].toString()),
                                   name: nameController.text.trim(),
                                   username: usernameController.text.trim(),
                                   password: passwordController.text.trim(),
